@@ -1,0 +1,17 @@
+
+make sure things work with Windows and MacOS
+
+3D scatter has some antialiasing bugs that haven't been fixed in vispy. Ignore for now.
+
+When the support is there, I would like to export the 3D Vispy graph as an interactive 3D graph that could be
+manipulated in powerpoint.
+
+may still need a way of removing extreme points
+
+Add menu items to make grouped cluster plots from previously clustered data
+
+do we need a clear data button?
+
+change pyinstaller to only use the virtual env to maybe make file sizes smaller??
+
+Fix size of the main window -- maybe in Designer??
