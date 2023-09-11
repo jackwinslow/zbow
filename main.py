@@ -251,10 +251,12 @@ class Main(Ui_MainWindow):
                                               index=False, header=True)
 
             if self.data.outliers_removed:
-                cluster_solution = self.data.raw_filtered
+                # Need to make deep copy as manipulating cluster_solution would manipulate self.data.raw_filtered
+                cluster_solution = self.data.raw_filtered.copy(deep=True)
                 cluster_solution.insert(0, 'clusterID', self.data.cluster_data_idx)
             else:
-                cluster_solution = self.data.raw
+                # Need to make deep copy as manipulating cluster_solution would manipulate self.data.raw
+                cluster_solution = self.data.raw.copy(deep=True)
                 cluster_solution.insert(loc=0, column='clusterID', value=pd.Series(self.data.cluster_data_idx))
 
             # cluster_solution.to_pickle(path=os.path.join(self.data.save_folder,
