@@ -1,9 +1,3 @@
 
 .DS_Store
 zbow-venv
-
-        self.hideNoisePushButton = QtWidgets.QPushButton(self.clusterOptionsBox)
-        sizePolicy.setHeightForWidth(self.hideNoisePushButton.sizePolicy().hasHeightForWidth())
-        self.hideNoisePushButton.setSizePolicy(sizePolicy)
-        self.hideNoisePushButton.setObjectName("hideNoisePushButton")
-        self.formLayout.setWidget(10, QtWidgets.QFormLayout.ItemRole.FieldRole, self.hideNoisePushButton)

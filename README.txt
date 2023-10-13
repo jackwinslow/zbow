@@ -1,4 +1,6 @@
-Updated 220302 - Jonathan Henninger
+Updated 220310 - Jackson Winslow
+
+Required Python version: 3.8.13
 
 Note: The "%" symbol below denotes a new line of the command prompt in the Terminal app, e.g.
 
@@ -8,7 +10,7 @@ The "%" is the beginning of the command line. Typing in the rest should print "Z
 
 ## Downloading code:
 
-1. Go to https://github.com/jehenninger/zbow
+1. Go to https://github.com/jackwinslow/zbow
 2. Click on "Code" and download the .zip file
 3. Unzip the file and move the folder to a directory of your choosing (called "/path/to/zbow_code" here)
 
