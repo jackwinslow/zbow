@@ -388,7 +388,7 @@ class SessionData:
 
         self.make_tabulated_cluster_data()
 
-    def zbow_3d_plot(self, parent, scale, color, update=False, highlight_cells=None, highlight_color=False):
+    def zbow_3d_plot(self, parent, scale, color, hide_noise=False, update=False, highlight_cells=None, highlight_color=False):
         if parent.was_closed:
             parent.show()
 
@@ -423,7 +423,7 @@ class SessionData:
                     color_data[i] = pseudo_color[self.cluster_data_idx[i]]
         elif color == 3:
             color_data = self.linear_transformed[['RFP', 'YFP', 'CFP']].values
-        elif color == 4:
+        elif color == 4:     
             color_data = np.empty([self.custom_transformed.shape[0], self.custom_transformed.shape[1]])
             color_data[:] = 0.3  # grey for non-highlighted cells
             highlight_cells = pd.Series(highlight_cells, name='bools')
@@ -493,6 +493,13 @@ class SessionData:
         cell_color = ColorArray(color=color_data, alpha=1)
         # @BUG I want to use a different alpha here, but Vispy has a bug where you can see through the main canvas with alpha
 
+        if hide_noise:
+            # Identify cells that belong to the noise cluster
+            noise_cells = np.where(self.cluster_data_idx == self.noise_cluster_idx)[0]
+
+            # Set alpha value of noise cells to 0 (making them invisible)
+            cell_color.alpha[noise_cells] = 0
+
         self.h_scatter_3d.set_data(pos=scale_data,
                                    symbol='o',
                                    size=5,
@@ -505,7 +512,7 @@ class SessionData:
             parent.move(new_window_position.x(), new_window_position.y())
             parent.show()
 
-    def zbow_2d_plot(self, parent, scale, color, update=False, highlight_cells=None, highlight_color=False):
+    def zbow_2d_plot(self, parent, scale, color, hide_noise=False, update=False, highlight_cells=None, highlight_color=False):
 
         new_window_position = parent.pos()
 
@@ -600,6 +607,13 @@ class SessionData:
 
         cell_color = ColorArray(color=color_data, alpha=1)
         # @BUG I want to use a different alpha here, but Vispy has a bug where you can see through the main canvas with alpha
+
+        if hide_noise:
+            # Identify cells that belong to the noise cluster
+            noise_cells = np.where(self.cluster_data_idx == self.noise_cluster_idx)[0]
+
+            # Set alpha value of noise cells to 0 (making them invisible)
+            cell_color.alpha[noise_cells] = 0
 
         self.h_scatter_2d.set_data(pos=scale_data,
                                    symbol='o',

@@ -113,6 +113,7 @@ class Main(Ui_MainWindow):
         self.splitCluster.clicked.connect(self.split_cluster)
         self.viewOutliersButton.clicked.connect(self.view_outliers)
         self.evaluateClusteringCheckBox.clicked.connect(self.evaluate_clusters)
+        self.hideNoiseCheckBox.clicked.connect(self.toggle_noise)
 
         # connect options
         self.scatterColorOption.activated.connect(self.update_plots)
@@ -504,16 +505,22 @@ class Main(Ui_MainWindow):
             self.data.make_tabulated_cluster_data()
             view.update_cluster_table(self.clusterInformationTable, self.data.tab_cluster_data)
 
-    def update_plots(self):
+    def toggle_noise(self):
+        hide_noise_bool = self.hideNoiseCheckBox.isChecked()
+        self.update_plots(hide_noise=hide_noise_bool)
+
+    def update_plots(self, hide_noise=False):
         if self.data.file_name:
             self.data.zbow_3d_plot(self.scatter3DWindow,
                                    scale=self.scatterScaleOption.currentIndex(),
                                    color=self.scatterColorOption.currentIndex(),
+                                   hide_noise=hide_noise,
                                    update=True)
 
             self.data.zbow_2d_plot(self.tern2DWindow,
                                    scale=self.ternScaleOption.currentIndex(),
                                    color=self.ternColorOption.currentIndex(),
+                                   hide_noise=hide_noise,
                                    update=True)
 
     # def closeEvent(self, event):

@@ -367,6 +367,14 @@ class Ui_MainWindow(object):
         self.shannonEntropy.setMaximumSize(QtCore.QSize(100, 30))
         self.shannonEntropy.setObjectName("shannonEntropy")
         self.formLayout_2.setWidget(9, QtWidgets.QFormLayout.ItemRole.FieldRole, self.shannonEntropy)
+
+        # For hiding noise
+        self.hideNoiseCheckBox =  QtWidgets.QCheckBox(self.clusterOptionsBox)
+        sizePolicy.setHeightForWidth(self.hideNoiseCheckBox.sizePolicy().hasHeightForWidth())
+        self.hideNoiseCheckBox.setSizePolicy(sizePolicy)
+        self.hideNoiseCheckBox.setObjectName("hideNoiseCheckBox")
+        self.formLayout.setWidget(12, QtWidgets.QFormLayout.ItemRole.FieldRole, self.hideNoiseCheckBox)
+
         self.horizontalLayout_2.addWidget(self.plotOptionsBox)
         self.verticalLayout_2.addWidget(self.groupBox_2)
         self.clusterInformationBox = QtWidgets.QGroupBox(self.groupBox_4)
@@ -480,6 +488,7 @@ class Ui_MainWindow(object):
         self.label_11.setText(_translate("MainWindow", "scale"))
         self.label.setText(_translate("MainWindow", "Gini coefficient"))
         self.label_12.setText(_translate("MainWindow", "Shannon Entropy"))
+        self.hideNoiseCheckBox.setText(_translate("MainWindow", "hide noise"))
         self.clusterInformationBox.setTitle(_translate("MainWindow", "cluster information"))
         self.menuFile.setTitle(_translate("MainWindow", "File"))
         self.menuData_processing.setTitle(_translate("MainWindow", "Data processing"))
