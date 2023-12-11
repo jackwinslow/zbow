@@ -98,6 +98,7 @@ class SessionData:
             self.data_size = self.raw.__len__()
 
             self.sample_name = os.path.splitext(os.path.basename(self.file_name))[0]
+            self.use_previous_clustering_solution = False
             success = True
 
         elif file_extension == '.csv':
@@ -106,10 +107,11 @@ class SessionData:
             self.raw = data.drop('clusterID', axis=1)
             self.cluster_data_idx = data['clusterID']
 
-            metadata_file_name = self.file_name.replace('cluster_solution', 'metadata')
+            metadata_file_name = self.file_name[0: self.file_name.rfind('cluster_solution')] + 'metadata.csv'
 
             metadata = pd.read_csv(metadata_file_name, index_col=0, header=None)
-            self.noise_cluster_idx = int(metadata.loc['noise_cluster_idx'][1])
+            self.noise_cluster_idx = np.int64(metadata.loc['noise_cluster_idx'][1])
+            self.red_only_cluster_idx = np.int64(metadata.loc['red_only_idx'][1])
 
             self.data_size = self.raw.__len__()
             self.params = self.raw.columns.values.tolist()
@@ -238,6 +240,9 @@ class SessionData:
 
     def make_tabulated_cluster_data(self):
         old_cluster_id = set(self.cluster_data_idx)
+        # print(old_cluster_id)
+        # old_cluster_id = {x for x in old_cluster_id if x==x} # used to clean nan values when importing cluster solution
+        # print(old_cluster_id)
 
         mean_cluster_color = pd.DataFrame(data=None, columns=['R', 'G', 'B'])
         mean_sil = []
@@ -264,11 +269,13 @@ class SessionData:
         cluster_data_freq = cluster_data.value_counts(normalize=True, sort=False)
         cluster_data_freq = round(100 * cluster_data_freq, 1)
 
-        # find red only cluster
-        total = np.sum(mean_cluster_color, axis=1)
-        percent_red = np.divide(mean_cluster_color['R'], total)
+        if not self.use_previous_clustering_solution:
+            # find red only cluster
+            total = np.sum(mean_cluster_color, axis=1)
+            percent_red = np.divide(mean_cluster_color['R'], total)
 
-        self.red_only_cluster_idx = np.where(percent_red == max(percent_red))[0]
+            self.red_only_cluster_idx = np.where(percent_red == max(percent_red))[0][0]
+
         # cluster_data_counts.index
         tab_cluster_data = {'id': cluster_id,
                             'mean R': mean_cluster_color['R'],
@@ -365,7 +372,7 @@ class SessionData:
 
         self.make_tabulated_cluster_data()
 
-    def join_clusters_together(self, clusters_to_join, cluster_on_data, evaluate_cluster=False):
+    def join_clusters_together(self, clusters_to_join, cluster_on_data, evaluate_cluster=False, noise_joined=False):
         # num_of_clusters = max(cluster_data_idx) + 1
         data = self.get_data_to_cluster_on(cluster_on_data)
 
@@ -373,13 +380,13 @@ class SessionData:
 
         join_idx = [x in clusters_to_join for x in self.cluster_data_idx]
 
-        # make all joined cluster idxs to be the smallest cluster
-        self.cluster_data_idx[join_idx] = min(clusters_to_join)
+        # make all joined cluster idxs to be the smallest cluster or noise
+        self.cluster_data_idx[join_idx] = min(clusters_to_join) if not noise_joined else self.noise_cluster_idx
 
         # need to figure out how many clusters we took out below the noise cluster
         below_noise_count = sum(clusters_to_join < self.noise_cluster_idx)
-        self.noise_cluster_idx = self.noise_cluster_idx - (below_noise_count-1)  # because we reduce 2 clusters to 1
-
+        self.noise_cluster_idx = self.noise_cluster_idx - (below_noise_count-1) if not noise_joined else self.noise_cluster_idx - below_noise_count
+        
         if evaluate_cluster:
             self.evaluate_cluster_solution(data)
         else:
@@ -826,6 +833,17 @@ class SessionData:
         color_data = color_data.iloc[new_order.values.tolist()]
         scatter_data = scatter_data.iloc[new_order.values.tolist()]
 
+        # if cluster_id == self.red_only_cluster_idx:
+        #     # Convert color_data to a DataFrame if it is not already one
+        #     color_data_df = pd.DataFrame(color_data)
+        #     scatter_data_df = pd.DataFrame(scatter_data)
+
+        #     # Save scatter_data to a CSV file
+        #     scatter_data_df.to_csv(os.path.join(self.save_folder, 'scatter_data.csv'), index=False)
+
+        #     # Save color_data to a CSV file
+        #     color_data_df.to_csv(os.path.join(self.save_folder, 'color_data.csv'), index=False)
+
         backgate_figure, (backgate_ax1, backgate_ax2) = plt.subplots(1, 2, sharey='all')
         backgate_figure.set_size_inches(7.5, 3.75)
         backgate_figure.set_dpi(300)
@@ -838,10 +856,21 @@ class SessionData:
         backgate_ax2.set_xlim(0, 1)
         backgate_ax2.set_ylim(0, 1)
 
-        backgate_ax1.set_xticklabels([])
-        backgate_ax1.set_yticklabels([])
-        backgate_ax2.set_xticklabels([])
-        backgate_ax2.set_yticklabels([])
+        x_tick_interval = 0.2
+        y_tick_interval = 0.2
+
+        x_ticks = np.arange(0, 1 + x_tick_interval, x_tick_interval)
+        y_ticks = np.arange(0, 1 + y_tick_interval, y_tick_interval)
+
+        backgate_ax1.set_xticks(x_ticks)
+        backgate_ax1.set_yticks(y_ticks)
+        backgate_ax2.set_xticks(x_ticks)
+        backgate_ax2.set_yticks(y_ticks)
+
+        backgate_ax1.set_xticklabels([f'{tick:.1f}' for tick in x_ticks])
+        backgate_ax1.set_yticklabels([f'{tick:.1f}' for tick in y_ticks])
+        backgate_ax2.set_xticklabels([f'{tick:.1f}' for tick in x_ticks])
+        backgate_ax2.set_yticklabels([f'{tick:.1f}' for tick in y_ticks])
 
         backgate_ax1.scatter(scatter_data['YFP'], scatter_data['CFP'],
                              s=2, c=color_data.values)
@@ -865,40 +894,58 @@ class SessionData:
         #         (self.default_transformed['YFP'] > 0.5) & (self.default_transformed['CFP'] < 0.5)]
         #     quad_color = color_data[(self.default_transformed['YFP'] > 0.5) & (self.default_transformed['CFP'] < 0.5)]
 
-        if quadrant == 1:
-            boolean_index = (scatter_data['YFP'] < 0.5) & (scatter_data['CFP'] > 0.5)
-            boolean_index = boolean_index.values.tolist()
-            quad_data = scatter_data[boolean_index]
-            quad_color = color_data[boolean_index]
-        elif quadrant == 2:
-            boolean_index = (scatter_data['YFP'] > 0.5) & (scatter_data['CFP'] > 0.5)
-            boolean_index = boolean_index.values.tolist()
-            quad_data = scatter_data[boolean_index]
-            quad_color = color_data[boolean_index]
-        elif quadrant == 3:
-            boolean_index = (scatter_data['YFP'] < 0.5) & (scatter_data['CFP'] < 0.5)
-            boolean_index = boolean_index.values.tolist()
-            quad_data = self.default_transformed[boolean_index]
-            quad_color = color_data[boolean_index]
-        elif quadrant == 4:
-            boolean_index = (scatter_data['YFP'] > 0.5) & (scatter_data['CFP'] < 0.5)
-            boolean_index = boolean_index.values.tolist()
-            quad_data = self.default_transformed[boolean_index]
-            quad_color = color_data[boolean_index]
+        """
+        Unsure of why quadrant became relevant here in original plot creation code. I went in and 
+        commented it all out, and instead used the original scatter_data and color_data to create
+        the output backagte plots. This resulted in consistent plots that accurately reflected what 
+        can be seen within the interactive plots while running the software.
+        """
+
+        # if quadrant == 1:
+        #     boolean_index = (scatter_data['YFP'] < 0.5) & (scatter_data['CFP'] > 0.5)
+        #     boolean_index = boolean_index.values.tolist()
+        #     quad_data = scatter_data[boolean_index]
+        #     quad_color = color_data[boolean_index]
+
+        # elif quadrant == 2:
+        #     boolean_index = (scatter_data['YFP'] > 0.5) & (scatter_data['CFP'] > 0.5)
+        #     boolean_index = boolean_index.values.tolist()
+        #     quad_data = scatter_data[boolean_index]
+        #     quad_color = color_data[boolean_index]
+        # elif quadrant == 3:
+        #     boolean_index = (scatter_data['YFP'] < 0.5) & (scatter_data['CFP'] < 0.5)
+        #     boolean_index = boolean_index.values.tolist()
+        #     quad_data = self.default_transformed[boolean_index]
+        #     quad_color = color_data[boolean_index]
+        # elif quadrant == 4:
+        #     boolean_index = (scatter_data['YFP'] > 0.5) & (scatter_data['CFP'] < 0.5)
+        #     boolean_index = boolean_index.values.tolist()
+        #     quad_data = self.default_transformed[boolean_index]
+        #     quad_color = color_data[boolean_index]
         
-        quad_color = quad_color.copy()
-        quad_color['alpha'] = [1.0] * len(quad_color)
-        quad_color = [tuple(x) for x in quad_color.values]
-        backgate_ax2.scatter(quad_data['YFP'], quad_data['RFP'],
-                             s=2, c=quad_color)
+        # quad_color = quad_color.copy()
+        # quad_color['alpha'] = [1.0] * len(quad_color)
+        # quad_color = [tuple(x) for x in quad_color.values]
+
+        # if cluster_id == self.red_only_cluster_idx:
+        #     print(quadrant)
+        #     # Save to CSV
+        #     quad_data.to_csv(os.path.join(self.save_folder, 'quad_data.csv'), index=False)
+        #     pd.DataFrame(quad_color, columns=['RFP', 'YFP', 'CFP', 'alpha']).to_csv(os.path.join(self.save_folder, 'quad_color.csv'), index=False)
+
+        # backgate_ax2.scatter(quad_data['YFP'], quad_data['RFP'],
+        #                      s=2, c=quad_color)
+
+        backgate_ax2.scatter(scatter_data['YFP'], scatter_data['RFP'],
+                                s=2, c=color_data.values)
 
         backgate_filename = os.path.join(self.save_folder, 'cluster_backgates', self.sample_name)
 
         if cluster_id == self.noise_cluster_idx:
             plt.savefig(backgate_filename + '_cluster_noise' + '.png',
-                        dpi=150, transparent=False, pad_inches=0, Bbox='tight')
+                        dpi=150, transparent=False, pad_inches=0, bbox='tight')
         else:
             plt.savefig(backgate_filename + '_cluster_' + str(cluster_id) + '.png',
-                        dpi=150, transparent=False, pad_inches=0, Bbox='tight')
+                        dpi=150, transparent=False, pad_inches=0, bbox='tight')
 
         plt.close(backgate_figure)

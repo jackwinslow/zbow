@@ -13,6 +13,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 from random import uniform
 from matplotlib import ticker
+from datetime import datetime
 
 # from PyQt5 import QtOpenGL  # necessary for pyinstaller
 # from PyQt5 import QtTest  # necessary for pyinstaller
@@ -216,7 +217,6 @@ class Main(Ui_MainWindow):
         print('not done yet')
 
     def save_data(self):
-        from datetime import datetime
 
         num_of_progress_bar_steps = 4 + len(self.data.tab_cluster_data['id'])
 
@@ -254,11 +254,26 @@ class Main(Ui_MainWindow):
             if self.data.outliers_removed:
                 # Need to make deep copy as manipulating cluster_solution would manipulate self.data.raw_filtered
                 cluster_solution = self.data.raw_filtered.copy(deep=True)
-                cluster_solution.insert(0, 'clusterID', self.data.cluster_data_idx)
+                cluster_solution.insert(loc=0, column='clusterID', value=pd.Series(self.data.cluster_data_idx))
             else:
                 # Need to make deep copy as manipulating cluster_solution would manipulate self.data.raw
                 cluster_solution = self.data.raw.copy(deep=True)
-                cluster_solution.insert(loc=0, column='clusterID', value=pd.Series(self.data.cluster_data_idx))
+
+                # unique, counts = np.unique(self.data.cluster_data_idx, return_counts=True)
+                # print(unique, counts)
+                # print(cluster_solution.dtypes)
+
+                # print(len(self.data.cluster_data_idx))
+                # print(cluster_solution.shape)
+
+                # print(pd.Series(self.data.cluster_data_idx).dtype)
+
+
+                # cluster_solution.insert(loc=0, column='clusterID', value=pd.Series(self.data.cluster_data_idx))
+
+                cluster_solution['clusterID'] = self.data.cluster_data_idx
+
+
 
             # cluster_solution.to_pickle(path=os.path.join(self.data.save_folder,
             #                                              self.data.sample_name + '_cluster_solution.pkl'),
@@ -380,7 +395,7 @@ class Main(Ui_MainWindow):
         eval_cluster_bool = self.evaluateClusteringCheckBox.isChecked()
 
         self.data.auto_cluster(self.clusterOnData.currentIndex(), int(self.clusterMinClusterSize.text()),
-                               int(self.clusterMinSamples.text()), evaluate_cluster=eval_cluster_bool)
+                               int(self.clusterMinSamples.text()), evaluate_cluster=eval_cluster_bool, prev_clustering_solution=self.data.use_previous_clustering_solution)
         self.giniCoeff.setText(str(self.data.gini))
         self.shannonEntropy.setText(str(self.data.shannon))
 
@@ -395,25 +410,24 @@ class Main(Ui_MainWindow):
 
         table_object = self.clusterInformationTable.selectedItems()
         clusters_to_join = []
+        noise_joined = False
 
         if table_object:
             for i in range(0, len(table_object)):
                 temp_table_object = table_object[i].text()
 
                 if 'noise' in str(temp_table_object):
-                    helper.error_message(self.error_dialog, 'Can not join noise cluster')
-                    con = False
-                    break
-                else:
-                    if 'red only' in str(temp_table_object):
-                        temp_table_object = self.data.red_only_cluster_idx
-                    clusters_to_join.append(temp_table_object)
-                    clusters_to_join[i] = int(clusters_to_join[i])
-                    con = True
+                    temp_table_object = self.data.noise_cluster_idx
+                    noise_joined = True
+                if 'red only' in str(temp_table_object):
+                    temp_table_object = self.data.red_only_cluster_idx
+                clusters_to_join.append(temp_table_object)
+                clusters_to_join[i] = int(clusters_to_join[i])
+                con = True
 
             if con:
                 self.data.join_clusters_together(clusters_to_join, self.clusterOnData.currentIndex(),
-                                                 evaluate_cluster=eval_cluster_bool)
+                                                 evaluate_cluster=eval_cluster_bool, noise_joined=noise_joined)
                 self.giniCoeff.setText(str(self.data.gini))
                 self.shannonEntropy.setText(str(self.data.shannon))
 

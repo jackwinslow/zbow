@@ -76,6 +76,7 @@ def update_cluster_table(cluster_table, tab_cluster_data):
     cluster_table.setRowCount(num_of_clusters)
 
     for c in range(0, num_of_clusters):
+
         cluster_id = QtWidgets.QTableWidgetItem(str(tab_cluster_data.iloc[c]['id']))
         cluster_id.setFlags(QtCore.Qt.ItemFlag.ItemIsSelectable | QtCore.Qt.ItemFlag.ItemIsEnabled)
 
